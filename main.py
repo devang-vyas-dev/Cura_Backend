@@ -21,8 +21,18 @@ app.add_middleware(
 )
 
 # Now we will create clients, and we will set the API Key from .getenv() method
-supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Create clients only if keys exist, otherwise None
+supabase = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+groq_client = None
+if GROQ_API_KEY:
+    groq_client = Groq(api_key=GROQ_API_KEY)
 
 def image_to_base64(file_bytes: bytes) -> str:
     return base64.b64encode(file_bytes).decode('utf-8')

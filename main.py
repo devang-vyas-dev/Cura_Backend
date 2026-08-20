@@ -15,7 +15,7 @@ app = FastAPI(title="Cura AI: A Prescription Scanner and Risk Analyzer")
 # This is the Main code that will help in connecting
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

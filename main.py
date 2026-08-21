@@ -69,19 +69,18 @@ async def analyze_document(file: UploadFile = File(...)):
                         {
                             "type": "text",
                             "text": """
-Analyze this prescription image.
-
-Extract only visibly readable text.
-Identify medicines that can actually be read.
-Do not invent missing information.
-
-Return:
-- OCR text
-- detected medicines
-- risk score from 0 to 100
-- potential risks
-- recommendations
-"""
+                            Analyze this prescription image.
+                            Extract only visibly readable text.
+                            Identify medicines that can actually be read.
+                            Do not invent missing information.
+                            Return:
+                            - OCR text
+                            - detected medicines
+                            - risk score from 0 to 100
+                            - potential risks
+                            - recommendations
+                        max_tokens = 2000
+                        """
                         },
                         {
                             "type": "image_url",

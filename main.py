@@ -79,7 +79,6 @@ async def analyze_document(file: UploadFile = File(...)):
                             - risk score from 0 to 100
                             - potential risks
                             - recommendations
-                        max_tokens = 2000
                         """
                         },
                         {
@@ -91,11 +90,11 @@ async def analyze_document(file: UploadFile = File(...)):
                     ]
                 }
             ],
-
             response_format={
                 "type": "json_schema",
                 "json_schema": {
                     "name": "prescription_analysis",
+                    "strict": True,
                     "schema": {
                         "type": "object",
                         "properties": {
@@ -137,8 +136,8 @@ async def analyze_document(file: UploadFile = File(...)):
                     }
                 }
             },
-
-            temperature=0
+            temperature=0,
+            max_tokens= 2000,
         )
 
         raw_content = completion.choices[0].message.content

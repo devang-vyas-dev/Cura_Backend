@@ -25,6 +25,9 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+print("SUPABASE_URL:", SUPABASE_URL)
+print("GROQ configured:", bool(GROQ_API_KEY))
+
 # Create clients only if keys exist, otherwise None
 supabase = None
 if SUPABASE_URL and SUPABASE_KEY:
@@ -56,98 +59,61 @@ async def analyze_document(file: UploadFile = File(...)):
             model="qwen/qwen3.6-27b",
 
             messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a prescription OCR and risk-analysis system. "
-                        "Analyze the prescription image and return structured data."
-                    )
+            {
+                "role": "system",
+                "content": (
+                    "You are a prescription OCR and analysis system. "
+                    "Return ONLY valid JSON. "
+                    "Do not use markdown. "
+                    "Do not add explanations outside the JSON."
+                )
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": """
+                        Analyze the prescription image.
+                        Rules:
+                        1. Extract only text that is visibly readable.
+                        2. Never guess or invent medicine names.
+                        3. Include only medicines that can actually be read.
+                        4. If something cannot be read, omit it.
+                        5. risk_score must be an integer from 0 to 100.
+                        6. risks must be an array of strings.
+                        7. recommendations must be an array of strings.
+                        8. Return ONLY the JSON object.
+                    Use exactly this structure:
+                        {
+                            "ocr_text": "string",
+                            "medicines_detected": ["string"],
+                            "risk_score": 0,
+                            "risks": ["string"],
+                            "recommendations": ["string"]
+                        }
+                        """
                 },
                 {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": """
-                            Analyze this prescription image.
-                            Extract only visibly readable text.
-                            Identify medicines that can actually be read.
-                            Do not invent missing information.
-                            Return:
-                            - OCR text
-                            - detected medicines
-                            - risk score from 0 to 100
-                            - potential risks
-                            - recommendations
-                        """
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "prescription_analysis",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "ocr_text": {
-                                "type": "string"
-                            },
-                            "medicines_detected": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "risk_score": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 100
-                            },
-                            "risks": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            },
-                            "recommendations": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
-                        },
-                        "required": [
-                            "ocr_text",
-                            "medicines_detected",
-                            "risk_score",
-                            "risks",
-                            "recommendations"
-                        ],
-                        "additionalProperties": False
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{mime_type};base64,{base64_image}"
                     }
                 }
-            },
-            temperature=0,
-            max_tokens= 2000,
-        )
-
+            ]
+        }
+    ],
+    response_format={
+        "type": "json_object"
+    },
+    temperature=0,
+    max_tokens=1200,
+    reasoning_effort="none"
+)
         raw_content = completion.choices[0].message.content
-
         print("MODEL OUTPUT:", repr(raw_content))
-
         result = json.loads(raw_content)
-
         doc_id = str(uuid.uuid4())
-
         final_data = {
             "id": doc_id,
             "file_name": file.filename or "unknown",
@@ -157,11 +123,8 @@ async def analyze_document(file: UploadFile = File(...)):
             "risks": result["risks"],
             "recommendations": result["recommendations"]
         }
-
         supabase.table("prescriptions").insert(final_data).execute()
-
         return final_data
-
     except Exception as e:
         print(f"ERROR: {e}")
         raise HTTPException(
